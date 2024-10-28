@@ -1,0 +1,1 @@
+/usr/bin/cc   -Wall -g   CMakeFiles/main.dir/main.c.o CMakeFiles/main.dir/src/epoll_server.c.o CMakeFiles/main.dir/src/poll_server.c.o CMakeFiles/main.dir/src/socket.c.o CMakeFiles/main.dir/src/tool.c.o CMakeFiles/main.dir/src/log.c.o CMakeFiles/main.dir/src/select_server.c.o  -o main 
