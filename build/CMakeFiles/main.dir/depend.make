@@ -6,6 +6,7 @@ CMakeFiles/main.dir/main.c.o: ../include/log.h
 CMakeFiles/main.dir/main.c.o: ../include/poll_server.h
 CMakeFiles/main.dir/main.c.o: ../include/select_server.h
 CMakeFiles/main.dir/main.c.o: ../include/socket.h
+CMakeFiles/main.dir/main.c.o: ../include/tool.h
 CMakeFiles/main.dir/main.c.o: ../main.c
 
 CMakeFiles/main.dir/src/epoll_server.c.o: ../include/epoll_server.h
@@ -31,6 +32,7 @@ CMakeFiles/main.dir/src/socket.c.o: ../include/log.h
 CMakeFiles/main.dir/src/socket.c.o: ../include/socket.h
 CMakeFiles/main.dir/src/socket.c.o: ../src/socket.c
 
+CMakeFiles/main.dir/src/tool.c.o: ../include/log.h
 CMakeFiles/main.dir/src/tool.c.o: ../include/tool.h
 CMakeFiles/main.dir/src/tool.c.o: ../src/tool.c
 

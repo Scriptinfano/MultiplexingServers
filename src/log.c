@@ -1,16 +1,21 @@
 #include "log.h"
+#include <string.h>
+#include <errno.h>
+#include <stdlib.h>
+#include <time.h>
 #include <stdarg.h>
-#include<stdlib.h>
+#include <stdio.h>
 const char *levelMap[] = {"DEBUG", "NORMAL", "WARNING", "ERROR", "FATAL"};
-char *create_error_message(const char *msg){
-    const char *error_str=strerror(errno);
+char *create_error_message(const char *msg)
+{
+    const char *error_str = strerror(errno);
     size_t msg_len = strlen(msg);
-    size_t err_len=strlen(error_str);
+    size_t err_len = strlen(error_str);
     size_t total_len = msg_len + err_len;
-    char *fullmsg=(char *)malloc(total_len);
-    if(fullmsg==NULL)
+    char *fullmsg = (char *)malloc(total_len);
+    if (fullmsg == NULL)
         return NULL;
-    snprintf(fullmsg,total_len,"%s:%s",msg,error_str);
+    snprintf(fullmsg, total_len, "%s:%s", msg, error_str);
     return fullmsg;
 }
 /*

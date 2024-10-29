@@ -1,6 +1,13 @@
 #include "socket.h"
+#include "log.h"
+#include <stdlib.h>
+#include <sys/socket.h>
+//#include <netinet/in.h>
+#include <errno.h>
+
 #include <strings.h>
-static const int gBackLog = 20; // 将变量限定在本文件之内，且不可修改
+#include <string.h>
+#include <arpa/inet.h>
 int mySocket()
 {
     int listenSock = socket(AF_INET, SOCK_STREAM, 0);
@@ -20,9 +27,10 @@ int mySocket()
     */
     if (setsockopt(listenSock, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt)) < 0)
     {
-        logMessage(ERROR, FILENAME, LINE, "setsock failed after create socket");
+        logMessage(FATAL, FILENAME, LINE, "setsock failed after create socket");
+        exit(EXIT_FAILURE);
     }
-    logMessage(DEBUG, FILENAME, LINE, "server create socket succes, file descripter on %d", listenSock);
+    logMessage(NORMAL, FILENAME, LINE, "server create socket succes, file descripter on %d", listenSock);
     return listenSock;
 }
 void myBind(int listenSock, uint16_t port, const char *ip)
@@ -40,7 +48,7 @@ void myBind(int listenSock, uint16_t port, const char *ip)
         logMessage(FATAL, FILENAME, LINE, "server bind %s:%d fail, %s", ip, port, strerror(errno));
         exit(EXIT_FAILURE);
     }
-    logMessage(DEBUG, FILENAME, LINE, "server bind %s:%d success", ip, port);
+    logMessage(NORMAL, FILENAME, LINE, "server bind %s:%d success", ip, port);
 }
 
 void myListen(int listenSock)
@@ -59,12 +67,11 @@ char *clientIP：输出型参数，获取连接之后的对端IP
 uint16_t *clientPort：输出型参数，获取连接之后的对端端口
 返回-1表示发生了错误，返回一个大于0的整数表示成功，且该整数就是新socket的文件描述符
 */
-int myAccept(int listenSock, char *clientIP, uint16_t * const clientPort)
+int myAccept(int listenSock, char *clientIP, uint16_t *const clientPort)
 {
     struct sockaddr_in client;
     socklen_t clientLen = sizeof(client);
-    memset(&client, 0, clientLen);
-
+    bzero(&client, clientLen);
     int serverSock = accept(listenSock, (struct sockaddr *)&client, &clientLen);
     if (serverSock < 0)
     {
@@ -72,9 +79,9 @@ int myAccept(int listenSock, char *clientIP, uint16_t * const clientPort)
         return -1;
     }
     char temp[16];
-    inet_ntop(AF_INET, &client.sin_addr, temp,sizeof(temp));
-    clientIP = (char *)malloc(16);//为输出型参数申请空间
-    memcpy(clientIP, temp, 16);//将刚才的temp上的内容复制到输出型参数指向的内存空间中
+    inet_ntop(AF_INET, &client.sin_addr, temp, sizeof(temp));
+    clientIP = (char *)malloc(16); // 为输出型参数申请空间
+    memcpy(clientIP, temp, 16);    // 将刚才的temp上的内容复制到输出型参数指向的内存空间中
     *clientPort = ntohs(client.sin_port);
     logMessage(NORMAL, FILENAME, LINE, "server accept connection success: [%s:%d] server sock::%d", clientIP, *clientPort, serverSock);
     return serverSock;

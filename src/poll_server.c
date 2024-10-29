@@ -1,32 +1,47 @@
 #include "poll_server.h"
+#include "socket.h"
 #include "tool.h"
-void init_pollserver(const char *ip, __uint16_t port, struct PollServer **server)
+#include "log.h"
+#include <stddef.h>
+#include <stdlib.h>
+#include <errno.h>
+#include <stdio.h>
+#include <unistd.h>
+#include <string.h>
+/*
+@brief 初始化PollServer结构体，返回创建的结构体的指针
+@param ip 要监听的ip地址
+@param port 要监听的端口号
+@return 返回创建的结构体指针，如果创建失败了，返回NULL
+*/
+struct PollServer *initPollServer(const char *ip, uint16_t port)
 {
-    *server = (struct PollServer *)malloc(sizeof(struct PollServer));
+    struct PollServer *server = (struct PollServer *)malloc(sizeof(struct PollServer));
     if (server != NULL)
     {
-        (*server)->listenSock = 0;
-        (*server)->listenSock = mySocket();
-        (*server)->nfds = NFDS;
-        (*server)->port = port;
-        myBind((*server)->listenSock, port, ip);
-        myListen((*server)->listenSock);
-        (*server)->pfd = (struct pollfd *)malloc(sizeof(struct pollfd) * (*server)->nfds);
-        for (int i = 0; i < (*server)->nfds; i++)
+        server->listenSock = 0;
+        server->listenSock = mySocket();
+        server->nfds = NFDS;
+        server->port = port;
+        myBind(server->listenSock, port, ip);
+        myListen(server->listenSock);
+        server->pfd = (struct pollfd *)malloc(sizeof(struct pollfd) * server->nfds);
+        for (int i = 0; i < server->nfds; i++)
         {
-            (*server)->pfd[i].fd = FD_NONE;
-            (*server)->pfd[i].events = (*server)->pfd[i].revents = 0;
+            server->pfd[i].fd = FD_NONE;
+            server->pfd[i].events = server->pfd[i].revents = 0;
         }
-        (*server)->pfd[0].fd = (*server)->listenSock; // 第0个位置留给监听描述符
-        (*server)->pfd[0].events = POLLIN;            // 关心listenSock的读
+        server->pfd[0].fd = server->listenSock; // 第0个位置留给监听描述符
+        server->pfd[0].events = POLLIN;         // 关心listenSock的读
     }
     else
     {
         logMessage(FATAL, FILENAME, LINE, "PollServer无法被分配内存");
-        exit(EXIT_FAILURE);
+        return NULL;
     }
+    return server;
 }
-void showFds_pollserver(struct PollServer *server)
+void showPollServerFds(struct PollServer *server)
 {
     printf("fds:: ");
     for (int i = 0; i < server->nfds; i++)
@@ -37,18 +52,18 @@ void showFds_pollserver(struct PollServer *server)
     }
     printf("\n"); // 输出换行符以刷新缓冲区并换行
 }
-void start_pollserver(struct PollServer *server)
+void startPollServer(struct PollServer *server)
 {
     while (1)
     {
-        showFds_pollserver(server);
+        showPollServerFds(server);
         logMessage(DEBUG, FILENAME, LINE, "即将调用poll检测文件描述符集是否有文件描述符就绪...");
         int res = poll(server->pfd, server->nfds, 2000); // poll的第三个参数如果为-1,poll会一直阻塞直到有事件发生
         if (res < 0)
         {
             // error
             logMessage(ERROR, FILENAME, LINE, strerror(errno));
-            free_pollserver(server);
+            freePollServer(server);
             exit(EXIT_FAILURE);
         }
         else if (res == 0)
@@ -60,7 +75,7 @@ void start_pollserver(struct PollServer *server)
         {
             // fd is ready
             logMessage(DEBUG, FILENAME, LINE, "文件描述符[%d]就绪", res);
-            eventHandler_pollserver(server);
+            handlePollServerEvent(server);
             printf("是否继续检测(y/n):");
             fflush(stdout);
             char option;
@@ -84,7 +99,7 @@ void start_pollserver(struct PollServer *server)
         }
     }
 }
-void eventHandler_pollserver(struct PollServer *server)
+void handlePollServerEvent(struct PollServer *server)
 {
     for (int i = 0; i < server->nfds; i++)
     {
@@ -100,16 +115,16 @@ void eventHandler_pollserver(struct PollServer *server)
             if (i == 0)
             {
                 // 监听套接字的情况
-                accepter_pollserver(server);
+                acceptPollServer(server);
             }
             else
             {
-                reader_pollserver(i, server);
+                readPollServer(i, server);
             }
         }
     }
 }
-void accepter_pollserver(struct PollServer *server)
+void acceptPollServer(struct PollServer *server)
 {
     char clientIp[16] = {'\0'};
     uint16_t clientPort;
@@ -135,7 +150,7 @@ void accepter_pollserver(struct PollServer *server)
         server->pfd[pos].events = POLLIN; // 关注新链接的描述符的可读状态
     }
 }
-void reader_pollserver(int pos, struct PollServer *server)
+void readPollServer(int pos, struct PollServer *server)
 {
     char buf[128] = {'\0'};
     int res = read(server->pfd[pos].fd, buf, sizeof(buf));
@@ -162,7 +177,7 @@ void reader_pollserver(int pos, struct PollServer *server)
         server->pfd[pos].events = server->pfd[pos].revents = 0;
     }
 }
-void free_pollserver(struct PollServer *server)
+void freePollServer(struct PollServer *server)
 {
     if (server != NULL)
     {

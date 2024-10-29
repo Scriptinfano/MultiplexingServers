@@ -1,8 +1,16 @@
 #include "epoll_server.h"
+#include "log.h"
+#include "socket.h"
+#include <unistd.h>
+#include <stdint.h>
+#include <stddef.h>
+#include <stdlib.h>
+#include <errno.h>
+#include <string.h>
 /*
 初始化epollServer
 */
-void init_epollserver(const char *ip, uint16_t port, struct EpollServer **server)
+void initEpollServer(const char *ip, uint16_t port, struct EpollServer **server)
 {
     *server = (struct EpollServer *)malloc(sizeof(struct EpollServer));
     if ((*server) != NULL)
@@ -13,8 +21,8 @@ void init_epollserver(const char *ip, uint16_t port, struct EpollServer **server
         (*server)->maxRevents = MAX_EVENTS;
         myBind((*server)->listenSock, port, ip);
         myListen((*server)->listenSock);
-        (*server)->epfd = init_epollmodel();
-        ctl_epoll((*server)->epfd, EPOLL_CTL_ADD, (*server)->listenSock, EPOLLIN);
+        (*server)->epfd = initEpollModel();
+        controlEpoll((*server)->epfd, EPOLL_CTL_ADD, (*server)->listenSock, EPOLLIN);
     }
     else
     {
@@ -26,12 +34,12 @@ void init_epollserver(const char *ip, uint16_t port, struct EpollServer **server
 /*
 开始运行EpollServer
 */
-void start_epollserver(struct EpollServer *server)
+void startEpollServer(struct EpollServer *server)
 {
     int timeout = 2000;
     while (1)
     {
-        int res = wait_epoll(server->epfd, server->revents, server->maxRevents, timeout);
+        int res = waitEpoll(server->epfd, server->revents, server->maxRevents, timeout);
         if (res == 0)
         {
             logMessage(NORMAL, FILENAME, LINE, "epoll wait time out, wait again...");
@@ -39,14 +47,14 @@ void start_epollserver(struct EpollServer *server)
         else
         {
             logMessage(NORMAL, FILENAME, LINE, "get a link");
-            handler_epollserver(res, server);
+            handleEpollServerEvent(res, server);
         }
     }
 }
 /*
 EpollServer的析构函数
 */
-void free_epollserver(struct EpollServer *server)
+void freeEpollServer(struct EpollServer *server)
 {
     if (server->listenSock >= 0)
         close(server->listenSock);
@@ -56,7 +64,7 @@ void free_epollserver(struct EpollServer *server)
         close(server->epfd);
     logMessage(DEBUG, FILENAME, LINE, "epoll has been successfully freed");
 }
-int init_epollmodel()
+int initEpollModel()
 {
     int res = epoll_create1(EPOLL_CLOEXEC);
     if (res == -1)
@@ -66,7 +74,7 @@ int init_epollmodel()
     }
     return res;
 }
-void ctl_epoll(int epfd, int op, int fd, uint32_t events)
+void controlEpoll(int epfd, int op, int fd, uint32_t events)
 {
     struct epoll_event event;
     event.events = events;
@@ -87,7 +95,7 @@ epoll这里底层会将就绪的n个事件全部放在我们传进去的events�
 时候只需要遍历数组的0 ~ n位，而不是像select和poll那样将整个
 数组都遍历一边，所以epoll每次处理时间的时候效率都会很高
 */
-int wait_epoll(int epfd, struct epoll_event *events, int maxevents, int timeout)
+int waitEpoll(int epfd, struct epoll_event *events, int maxevents, int timeout)
 {
     int res = epoll_wait(epfd, events, maxevents, timeout);
     if (res == -1)
@@ -97,7 +105,7 @@ int wait_epoll(int epfd, struct epoll_event *events, int maxevents, int timeout)
     }
     return res;
 }
-void accepter_epollserver(struct EpollServer *server)
+void acceptEpollServer(struct EpollServer *server)
 {
     char clientIp[16] = {'\0'};
     uint16_t clientPort;
@@ -105,10 +113,10 @@ void accepter_epollserver(struct EpollServer *server)
     logMessage(DEBUG, FILENAME, LINE, "new client socket accetped[%s:%d]", clientIp, clientPort);
     if (sock > 0)
     {
-        ctl_epoll(server->epfd, EPOLL_CTL_ADD, sock, EPOLLIN);
+        controlEpoll(server->epfd, EPOLL_CTL_ADD, sock, EPOLLIN);
     }
 }
-void reader_epollserver(int sock, struct EpollServer *server)
+void readEpollServer(int sock, struct EpollServer *server)
 {
     char buf[128] = {'\0'};
     int res = read(sock, buf, sizeof(buf));
@@ -121,7 +129,7 @@ void reader_epollserver(int sock, struct EpollServer *server)
     {
         // EOF 关闭文件描述符
         logMessage(NORMAL, FILENAME, LINE, "client[%d] closed, me too", sock);
-        ctl_epoll(server->epfd, EPOLL_CTL_DEL, sock, EPOLLIN);
+        controlEpoll(server->epfd, EPOLL_CTL_DEL, sock, EPOLLIN);
         close(sock);
     }
     else
@@ -129,7 +137,7 @@ void reader_epollserver(int sock, struct EpollServer *server)
         // read error
         logMessage(ERROR, FILENAME, LINE, "client[%d] read error,errno[%d]::%s", sock, errno, strerror(errno));
         // 先让epoll取消对指定套接字上某事件的关心，然后再去关闭socket
-        ctl_epoll(server->epfd, EPOLL_CTL_DEL, sock, EPOLLIN);
+        controlEpoll(server->epfd, EPOLL_CTL_DEL, sock, EPOLLIN);
         close(sock);
     }
 }
@@ -138,7 +146,7 @@ void reader_epollserver(int sock, struct EpollServer *server)
     int n: epoll_event数组的前n个代表就绪的事件，一般从epoll_wait的返回值得到
     struct EpollServer *server:
 */
-void handler_epollserver(int n, struct EpollServer *server)
+void handleEpollServerEvent(int n, struct EpollServer *server)
 {
     // epoll的好处就在于调用epoll_wait的时候从其输出型参数所代表的epoll_event数组中就能快速得到哪些事件就绪了，就是数组的前n个元素，n就是epoll_wait成功之后的返回值
     for (int i = 0; i < n; i++)
@@ -152,12 +160,12 @@ void handler_epollserver(int n, struct EpollServer *server)
             if (sock == server->listenSock)
             {
                 // 如果是监听套接字的读事件就绪
-                accepter_epollserver(server);
+                acceptEpollServer(server);
             }
             else
             {
                 // 如果是连接的要读取数据的套接子，则读取
-                reader_epollserver(sock, server);
+                readEpollServer(sock, server);
             }
         }
     }

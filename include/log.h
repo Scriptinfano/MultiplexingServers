@@ -1,14 +1,10 @@
 #pragma once
-#include <stdio.h>
-#include <string.h>
-#include <time.h>
-#include <unistd.h>
-#include <errno.h>
 #define FILENAME __FILE__
 #define LINE __LINE__
 #define LOGFILE "./log/log.txt"       // 日志输出到哪个文件
 #define CONFIGFILE "./etc/config.txt" // 哪些级别的日志应该输出到文件
 extern const char *levelMap[];
+#define LOGPARAM FILENAME,LINE
 
 enum level
 {

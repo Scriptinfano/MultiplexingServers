@@ -1,14 +1,8 @@
 #pragma once
-#include "log.h"
-#include <stdlib.h>
-#include <sys/socket.h>
-#include <err.h>
-#include <netinet/in.h>
-#include <arpa/inet.h>
-#include <errno.h>
-extern const int gBackLog; // 连接就绪队列
+#include <stdint.h>
+static const int gBackLog = 20; // 将变量限定在本文件之内，且不可修改
 int mySocket();
-void myBind(int listenSock, u_int16_t port, const char *ip);
+void myBind(int listenSock, uint16_t port, const char *ip);
 void myListen(int listenSock);
 /*
 int listenSock: 监听套接字的文件描述符
