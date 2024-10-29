@@ -5,18 +5,18 @@
 #define FD_NONE -1 // 每个文件描述符的初始化值
 #define NFDS 5     // pollfd数组的元素个数
 
-struct PollServer
+typedef struct PollServer
 {
     uint16_t port;      // 监听端口号
     int listenSock;     // 监听套接字文件描述符
     struct pollfd *pfd; // pollfd的数组
     int nfds;
-};
+}PollServer;
 
-struct PollServer *initPollServer(const char *ip, uint16_t port);
-void showPollServerFds(struct PollServer *server);
-void startPollServer(struct PollServer *server);
-void handlePollServerEvent(struct PollServer *server);
-void acceptPollServer(struct PollServer *server);
-void readPollServer(int pos, struct PollServer *server);
-void freePollServer(struct PollServer *server);
+PollServer *initPollServer(const char *ip, uint16_t port);
+void showPollServerFds(PollServer *server);
+void startPollServer(PollServer *server);
+void handlePollServerEvent(PollServer *server);
+void acceptPollServer(PollServer *server);
+void readPollServer(int pos, PollServer *server);
+void freePollServer(PollServer *server);

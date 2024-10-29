@@ -6,3 +6,7 @@ void clearInputBuffer();
 @param fd 文件描述符
 */
 void SetNonBlock(int fd);
+/*
+@brief 将整型转换为字符串
+*/
+char *intToString(int num);

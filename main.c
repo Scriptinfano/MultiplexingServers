@@ -44,5 +44,5 @@ void test_epollserver()
 }
 int main()
 {
-    test();
+    test_pollserver();
 }

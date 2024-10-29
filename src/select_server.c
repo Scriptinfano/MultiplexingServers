@@ -10,16 +10,16 @@
 #include <stdlib.h>
 #include <unistd.h>
 
-static void readSelectServer(int fd, struct SelectServer *server);
-static void handleSelectServerEvent(fd_set *rfds, struct SelectServer *server);
-static void showSelectServerFds(struct SelectServer *server);
-static void acceptSelectSevrer(struct SelectServer *serve);
+static void readSelectServer(int fd, SelectServer *server);
+static void handleSelectServerEvent(fd_set *rfds, SelectServer *server);
+static void showSelectServerFds(SelectServer *server);
+static void acceptSelectSevrer(SelectServer *serve);
 
-struct SelectServer *initSelectServer(uint16_t port, const char *ip)
+SelectServer *initSelectServer(uint16_t port, const char *ip)
 {
     logMessage(NORMAL, LOGPARAM, "initiating SelectSevrer...");
-    size_t server_size = sizeof(struct SelectServer);
-    struct SelectServer *p = (struct SelectServer *)malloc(server_size);
+    size_t server_size = sizeof(SelectServer);
+    SelectServer *p = (SelectServer *)malloc(server_size);
     p->listenSock = mySocket();
     myBind(p->listenSock, port, ip);
     myListen(p->listenSock);
@@ -32,7 +32,7 @@ struct SelectServer *initSelectServer(uint16_t port, const char *ip)
     logMessage(NORMAL, LOGPARAM, "init SelectServer success");
     return p;
 }
-void startSelectServer(struct SelectServer *server, struct timeval *timeval_ptr)
+void startSelectServer(SelectServer *server, struct timeval *timeval_ptr)
 {
     logMessage(NORMAL, LOGPARAM, "starting SelectSevrer...");
     // 声明一个文件描述符集合
@@ -90,7 +90,7 @@ void startSelectServer(struct SelectServer *server, struct timeval *timeval_ptr)
 
 // 下面的私有函数相当于C语言中的私有函数不可被外部调用
 
-static void readSelectServer(int fd, struct SelectServer *server)
+static void readSelectServer(int fd, SelectServer *server)
 {
     char buff[128] = {0};
     ssize_t res = read(server->rdArray[fd], buff, sizeof(buff) - 1);
@@ -114,7 +114,7 @@ static void readSelectServer(int fd, struct SelectServer *server)
     }
 }
 
-static void handleSelectServerEvent(fd_set *rfds, struct SelectServer *server)
+static void handleSelectServerEvent(fd_set *rfds, SelectServer *server)
 {
     for (int i = 0; i < NUM; i++)
     {
@@ -129,7 +129,7 @@ static void handleSelectServerEvent(fd_set *rfds, struct SelectServer *server)
         }
     }
 }
-static void showSelectServerFds(struct SelectServer *server)
+static void showSelectServerFds(SelectServer *server)
 {
     printf("fds::");
     for (int i = 0; i < NUM; i++)
@@ -140,7 +140,7 @@ static void showSelectServerFds(struct SelectServer *server)
     }
     printf("\n");
 }
-static void acceptSelectSevrer(struct SelectServer *server)
+static void acceptSelectSevrer(SelectServer *server)
 {
     char *ip;
     uint16_t clientPort;

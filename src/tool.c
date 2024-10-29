@@ -22,3 +22,14 @@ void SetNonBlock(int fd)
 
     fcntl(fd, F_SETFD, old_flag | O_NONBLOCK);
 }
+
+char *intToString(int num)
+{
+    // 动态分配内存以容纳字符串
+    char *str = (char *)malloc(20 * sizeof(char)); // 假设最多 20 位
+    if (str != NULL)
+    {
+        snprintf(str, 20, "%d", num); // 使用 snprintf 安全转换
+    }
+    return str; // 返回指向字符串的指针
+}

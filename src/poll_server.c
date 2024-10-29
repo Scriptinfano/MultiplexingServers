@@ -14,14 +14,13 @@
 @param port 要监听的端口号
 @return 返回创建的结构体指针，如果创建失败了，返回NULL
 */
-struct PollServer *initPollServer(const char *ip, uint16_t port)
+PollServer *initPollServer(const char *ip, uint16_t port)
 {
-    struct PollServer *server = (struct PollServer *)malloc(sizeof(struct PollServer));
+    PollServer *server = (PollServer *)malloc(sizeof(PollServer));
     if (server != NULL)
     {
-        server->listenSock = 0;
         server->listenSock = mySocket();
-        server->nfds = NFDS;
+        server->nfds = NFDS;//最多可以监视几个文件描述符
         server->port = port;
         myBind(server->listenSock, port, ip);
         myListen(server->listenSock);
@@ -36,12 +35,12 @@ struct PollServer *initPollServer(const char *ip, uint16_t port)
     }
     else
     {
-        logMessage(FATAL, FILENAME, LINE, "PollServer无法被分配内存");
+        logMessage(FATAL, LOGPARAM, "PollServer无法被分配内存");
         return NULL;
     }
     return server;
 }
-void showPollServerFds(struct PollServer *server)
+void showPollServerFds(PollServer *server)
 {
     printf("fds:: ");
     for (int i = 0; i < server->nfds; i++)
@@ -52,29 +51,28 @@ void showPollServerFds(struct PollServer *server)
     }
     printf("\n"); // 输出换行符以刷新缓冲区并换行
 }
-void startPollServer(struct PollServer *server)
+void startPollServer(PollServer *server)
 {
     while (1)
     {
         showPollServerFds(server);
-        logMessage(DEBUG, FILENAME, LINE, "即将调用poll检测文件描述符集是否有文件描述符就绪...");
         int res = poll(server->pfd, server->nfds, 2000); // poll的第三个参数如果为-1,poll会一直阻塞直到有事件发生
         if (res < 0)
         {
             // error
-            logMessage(ERROR, FILENAME, LINE, strerror(errno));
+            logMessage(FATAL, LOGPARAM, strerror(errno));
             freePollServer(server);
             exit(EXIT_FAILURE);
         }
         else if (res == 0)
         {
             // time out
-            logMessage(DEBUG, FILENAME, LINE, "调用poll函数时超时", res);
+            logMessage(DEBUG, LOGPARAM, "poll在指定时间段内没有检测到就绪的文件描述符，发生超时");
         }
         else
         {
             // fd is ready
-            logMessage(DEBUG, FILENAME, LINE, "文件描述符[%d]就绪", res);
+            logMessage(DEBUG, LOGPARAM, "文件描述符[%d]就绪", res);
             handlePollServerEvent(server);
             printf("是否继续检测(y/n):");
             fflush(stdout);
@@ -99,7 +97,7 @@ void startPollServer(struct PollServer *server)
         }
     }
 }
-void handlePollServerEvent(struct PollServer *server)
+void handlePollServerEvent(PollServer *server)
 {
     for (int i = 0; i < server->nfds; i++)
     {
@@ -124,7 +122,7 @@ void handlePollServerEvent(struct PollServer *server)
         }
     }
 }
-void acceptPollServer(struct PollServer *server)
+void acceptPollServer(PollServer *server)
 {
     char clientIp[16] = {'\0'};
     uint16_t clientPort;
@@ -139,18 +137,18 @@ void acceptPollServer(struct PollServer *server)
     if (pos == server->nfds)
     {
         // 找到最后一个位置都没找到，可以采取的措施是对server->pfd这个数组进行一个扩容
-        logMessage(DEBUG, FILENAME, LINE, "文件描述符集合已满，无法再管理新的连接");
+        logMessage(DEBUG, LOGPARAM, "文件描述符集合已满，无法再管理新的连接");
         close(sock);
     }
     else
     {
         // 找到了位置的情况
-        logMessage(DEBUG, FILENAME, LINE, "connected to a new client[%d]", sock);
+        logMessage(DEBUG, LOGPARAM, "connected to a new client[%d]", sock);
         server->pfd[pos].fd = sock;
         server->pfd[pos].events = POLLIN; // 关注新链接的描述符的可读状态
     }
 }
-void readPollServer(int pos, struct PollServer *server)
+void readPollServer(int pos, PollServer *server)
 {
     char buf[128] = {'\0'};
     int res = read(server->pfd[pos].fd, buf, sizeof(buf));
@@ -177,7 +175,7 @@ void readPollServer(int pos, struct PollServer *server)
         server->pfd[pos].events = server->pfd[pos].revents = 0;
     }
 }
-void freePollServer(struct PollServer *server)
+void freePollServer(PollServer *server)
 {
     if (server != NULL)
     {
