@@ -10,6 +10,7 @@
 #include <string.h>
 int initEpollModel()
 {
+    //现在创建epollfd已经不再使用老的epoll_create了，而是支持参数写标志位的epoll_create1()函数，不再像之前一样需要size参数
     int epfd = epoll_create1(EPOLL_CLOEXEC); // 在执行exec族替换当前进程的时候自动关闭当前进程仍然处于打开状态的epfd
     if (epfd == -1)
     {
