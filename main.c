@@ -11,7 +11,7 @@ void test_selectserver()
 {
     struct SelectServer *p = initSelectServer(8080, "127.0.0.1");
     struct timeval the_timeval;
-    the_timeval.tv_sec=10;
+    the_timeval.tv_sec = 10;
     the_timeval.tv_usec = 0;
     startSelectServer(p, &the_timeval);
 }
@@ -37,9 +37,8 @@ void test_pollserver()
 }
 void test_epollserver()
 {
-    struct EpollServer *server = NULL;
-    initEpollServer("127.0.0.1", 12345, &server);
-    startEpollServer(server);
+    struct EpollServer *server = initEpollServer("127.0.0.1", 12345);
+    startEpollServer(-1, server);
     freeEpollServer(server);
 }
 int main()
